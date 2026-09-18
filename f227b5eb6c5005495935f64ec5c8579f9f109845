@@ -1,0 +1,1 @@
+Fixed checkout authentication so the updater can run while Codex remains unable to push.
