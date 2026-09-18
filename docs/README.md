@@ -54,6 +54,7 @@ source alone does not explain. Most code changes do not need an internal documen
 ### Runbooks
 
 - [Development and local builds](./operations/development.md)
+- [Run the delegation fork on Windows](./operations/fork-daily-driver.md)
 - [Upstream stable sync](./operations/upstream-stable-sync.md)
 - [T3 Connect setup](./operations/connect-setup.md)
 - [Release](./operations/release.md)
