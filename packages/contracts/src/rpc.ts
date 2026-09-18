@@ -213,6 +213,12 @@ import {
   PreviewAutomationStreamEvent,
 } from "./previewAutomation.ts";
 import {
+  DelegationBrokerError,
+  DelegationBrokerResponse,
+  DelegationHost,
+  DelegationStreamEvent,
+} from "./delegation.ts";
+import {
   ServerConfigStreamEvent,
   DesktopUpdateCommitInput,
   ServerConfig,
@@ -343,6 +349,10 @@ export const WS_METHODS = {
   previewAutomationConnect: "previewAutomation.connect",
   previewAutomationRespond: "previewAutomation.respond",
   previewAutomationFocusHost: "previewAutomation.focusHost",
+
+  // Delegation broker methods
+  delegationConnect: "delegation.connect",
+  delegationRespond: "delegation.respond",
 
   // Device methods
   deviceConfigure: "device.configure",
@@ -1169,6 +1179,18 @@ const WsPreviewAutomationFocusHostRpc = Rpc.make(WS_METHODS.previewAutomationFoc
   error: EnvironmentAuthorizationError,
 });
 
+const WsDelegationConnectRpc = Rpc.make(WS_METHODS.delegationConnect, {
+  payload: DelegationHost,
+  success: DelegationStreamEvent,
+  error: Schema.Union([DelegationBrokerError, EnvironmentAuthorizationError]),
+  stream: true,
+});
+
+const WsDelegationRespondRpc = Rpc.make(WS_METHODS.delegationRespond, {
+  payload: DelegationBrokerResponse,
+  error: Schema.Union([DelegationBrokerError, EnvironmentAuthorizationError]),
+});
+
 const WsSubscribePreviewEventsRpc = Rpc.make(WS_METHODS.subscribePreviewEvents, {
   payload: Schema.Struct({}),
   success: PreviewEvent,
@@ -1474,6 +1496,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsPreviewAutomationConnectRpc,
   WsPreviewAutomationRespondRpc,
   WsPreviewAutomationFocusHostRpc,
+  WsDelegationConnectRpc,
+  WsDelegationRespondRpc,
   WsSubscribePreviewEventsRpc,
   WsSubscribeDiscoveredLocalServersRpc,
   WsDeviceConfigureRpc,

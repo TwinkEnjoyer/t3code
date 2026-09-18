@@ -75,6 +75,13 @@ export const ServerSelfUpdateCapability = Schema.Literals([
 ]);
 export type ServerSelfUpdateCapability = typeof ServerSelfUpdateCapability.Type;
 
+export const DelegationCapability = Schema.Struct({
+  protocolVersion: Schema.Literal(1),
+  agentMessaging: Schema.Boolean,
+  remoteTargets: Schema.Boolean,
+});
+export type DelegationCapability = typeof DelegationCapability.Type;
+
 export const ExecutionEnvironmentCapabilities = Schema.Struct({
   repositoryIdentity: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   connectionProbe: Schema.optionalKey(Schema.Boolean),
@@ -167,6 +174,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
       desktop servers whose app predates the remote trigger, where clients
       must keep telling the user to update the app on that machine. */
   desktopAppUpdate: Schema.optionalKey(Schema.Boolean),
+  /** Server accepts versioned child-task requests and agent messages. */
+  delegation: Schema.optionalKey(DelegationCapability),
 });
 export type ExecutionEnvironmentCapabilities = typeof ExecutionEnvironmentCapabilities.Type;
 

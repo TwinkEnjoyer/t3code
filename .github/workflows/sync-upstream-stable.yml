@@ -1,0 +1,110 @@
+name: Sync upstream stable
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream-stable
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Open stable update
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Fetch stable releases
+        run: |
+          git remote add upstream https://github.com/pingdotgg/t3code.git
+          git fetch upstream --tags --force
+
+          stable_tag="$({
+            git tag --list
+          } | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
+
+          if test -z "$stable_tag"; then
+            echo "No stable upstream tag was found." >&2
+            exit 1
+          fi
+
+          echo "STABLE_TAG=$stable_tag" >> "$GITHUB_ENV"
+          echo "SYNC_BRANCH=automation/upstream-${stable_tag}" >> "$GITHUB_ENV"
+
+      - name: Check current version
+        id: current
+        run: |
+          if git merge-base --is-ancestor "$STABLE_TAG" HEAD; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "The fork already contains $STABLE_TAG."
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge stable release
+        if: steps.current.outputs.needed == 'true'
+        id: merge
+        continue-on-error: true
+        run: |
+          git config user.name "t3code-upstream-sync"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$SYNC_BRANCH"
+          git merge --no-ff "$STABLE_TAG" -m "codex | merge upstream stable $STABLE_TAG"
+
+      - name: Report a merge conflict
+        if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'failure'
+        run: |
+          title="Upstream $STABLE_TAG sync needs a manual merge"
+          issue_number="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+
+          if test -n "$issue_number"; then
+            gh issue comment "$issue_number" --body "The scheduled sync still cannot merge $STABLE_TAG. See workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+          else
+            gh issue create --title "$title" --body "The scheduled sync found conflicts for $STABLE_TAG. Merge the release manually, then run this workflow again. Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+
+          exit 1
+
+      - name: Push update branch
+        if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'success'
+        run: git push --force-with-lease origin "$SYNC_BRANCH"
+
+      - name: Open update pull request
+        if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'success'
+        run: |
+          existing="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if test -n "$existing"; then
+            echo "Pull request $existing already tracks $STABLE_TAG."
+            exit 0
+          fi
+
+          gh pr create \
+            --base "$TARGET_BRANCH" \
+            --head "$SYNC_BRANCH" \
+            --title "codex | sync upstream stable $STABLE_TAG" \
+            --body "This pull request merges upstream stable release $STABLE_TAG. Review conflicts, run checks, and merge after the checks pass."
+
+      - name: Enable automatic merge
+        if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'success' && vars.T3_FORK_AUTO_MERGE == 'true'
+        run: |
+          pull_request="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if test -z "$pull_request"; then
+            echo "No open update pull request was found." >&2
+            exit 1
+          fi
+          gh pr merge "$pull_request" --auto --merge

@@ -237,6 +237,11 @@ export const make = Effect.gen(function* () {
       threadPullRequestLinking: true,
       environmentIcon: true,
       projectCloneTracking: true,
+      delegation: {
+        protocolVersion: 1,
+        agentMessaging: true,
+        remoteTargets: true,
+      },
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
         ? {
