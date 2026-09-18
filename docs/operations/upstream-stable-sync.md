@@ -1,6 +1,6 @@
 # Upstream stable sync
 
-The fork checks for a stable T3 Code release every six hours.
+The fork checks for a stable T3 Code release each day at 4:00 AM Australia/Sydney time.
 
 The workflow accepts tags with the exact `vMAJOR.MINOR.PATCH` form. It ignores preview and nightly tags.
 
