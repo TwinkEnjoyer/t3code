@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Fetch stable releases
@@ -68,6 +68,15 @@ jobs:
           git merge --no-ff "$STABLE_TAG" \
             -m "codex | merge upstream stable $STABLE_TAG" \
             -m "Merge the upstream stable release into the delegation fork."
+
+      - name: Remove the checkout write credential
+        if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'failure' && env.HAS_OPENAI_API_KEY == 'true'
+        run: |
+          mapfile -t credential_keys < <(git config --local --name-only --get-regexp '^includeIf\..*\.path$' || true)
+          for key in "${credential_keys[@]}"; do
+            git config --local --unset-all "$key"
+          done
+          git config --local --unset-all http.https://github.com/.extraheader || true
 
       - name: Repair merge conflict with Codex
         if: steps.current.outputs.needed == 'true' && steps.merge.outcome == 'failure' && env.HAS_OPENAI_API_KEY == 'true'
@@ -142,6 +151,14 @@ jobs:
 
           exit 1
 
+      - name: Push update branch
+        if: steps.ready.outputs.value == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          git push --force-with-lease origin "$SYNC_BRANCH"
+
       - name: Close the old conflict issue
         if: steps.ready.outputs.value == 'true'
         env:
@@ -153,14 +170,6 @@ jobs:
             gh issue comment "$issue_number" --body "The update branch now contains a valid merge for $STABLE_TAG."
             gh issue close "$issue_number" --reason completed
           fi
-
-      - name: Push update branch
-        if: steps.ready.outputs.value == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh auth setup-git
-          git push --force-with-lease origin "$SYNC_BRANCH"
 
       - name: Open update pull request
         if: steps.ready.outputs.value == 'true'
