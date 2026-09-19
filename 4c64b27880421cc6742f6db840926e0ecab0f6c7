@@ -1,0 +1,1 @@
+Added a runnable Windows installer path. The fork uses separate application, user-data, and T3 data identities. GitHub now builds an unsigned x64 installer artifact after each default-branch change.
