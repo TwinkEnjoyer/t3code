@@ -75,9 +75,14 @@ describe("DesktopEnvironment", () => {
       assert.equal(environment.serverRoot, "/repo");
       assert.equal(environment.backendEntryPath, "/repo/apps/server/dist/bin.mjs");
       assert.equal(environment.backendCwd, "/repo");
-      assert.equal(environment.appUserModelId, "com.t3tools.t3code.dev");
-      assert.equal(environment.linuxWmClass, "t3code-dev");
-      assert.equal(environment.linuxDesktopEntryName, "com.t3tools.T3Code.Development.desktop");
+      assert.equal(environment.displayName, "T3 Code Delegation (Dev)");
+      assert.equal(environment.appUserModelId, "com.twinkenjoyer.t3code.delegation.dev");
+      assert.equal(environment.userDataDirName, "t3code-delegation-dev");
+      assert.equal(environment.linuxWmClass, "t3code-delegation-dev");
+      assert.equal(
+        environment.linuxDesktopEntryName,
+        "com.twinkenjoyer.T3CodeDelegation.Development.desktop",
+      );
       assert.deepEqual(
         Option.map(environment.devServerUrl, (url) => url.href),
         Option.some("http://localhost:5173/"),
@@ -135,6 +140,11 @@ describe("DesktopEnvironment", () => {
         environment.clientAssetsDir,
         "/install/resources/server.asar/apps/server/dist/client",
       );
+      assert.equal(environment.baseDir, "/Users/alice/.t3-delegation");
+      assert.equal(environment.stateDir, "/Users/alice/.t3-delegation/userdata");
+      assert.equal(environment.displayName, "T3 Code Delegation (Alpha)");
+      assert.equal(environment.appUserModelId, "com.twinkenjoyer.t3code.delegation");
+      assert.equal(environment.userDataDirName, "t3code-delegation");
     }),
   );
 
@@ -147,7 +157,7 @@ describe("DesktopEnvironment", () => {
         resourcesPath: "/tmp/.mount_t3code/resources",
       });
 
-      assert.equal(environment.linuxDesktopEntryName, "com.t3tools.T3Code.desktop");
+      assert.equal(environment.linuxDesktopEntryName, "com.twinkenjoyer.T3CodeDelegation.desktop");
     }),
   );
 
@@ -159,8 +169,8 @@ describe("DesktopEnvironment", () => {
       );
       const production = yield* makeEnvironment();
 
-      assert.equal(development.stateDir, "/Users/alice/.t3/dev");
-      assert.equal(production.stateDir, "/Users/alice/.t3/userdata");
+      assert.equal(development.stateDir, "/Users/alice/.t3-delegation/dev");
+      assert.equal(production.stateDir, "/Users/alice/.t3-delegation/userdata");
     }),
   );
 

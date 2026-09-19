@@ -1,4 +1,44 @@
-# Run the delegation fork on Windows
+# Install and run the delegation fork on Windows
+
+Use the Windows installer for normal daily use. The installed fork uses its own application and data identities.
+
+The fork stores application data in `%APPDATA%\t3code-delegation`. It stores T3 data in `%USERPROFILE%\.t3-delegation`.
+
+## Get the installer
+
+1. Open the **Build delegation fork for Windows** workflow in GitHub Actions.
+2. Open the newest successful run for the default branch.
+3. Download the `t3-code-delegation-windows-x64-*` artifact.
+4. Extract the artifact ZIP file.
+5. Run the `T3-Code-Delegation-*.exe` installer.
+
+🟨 The installer is not code-signed. Windows can show a SmartScreen warning.
+
+## Build the installer locally
+
+Install Node.js, Vite+, Rust, and Visual Studio Build Tools 2022 first.
+
+Run this command from PowerShell:
+
+```powershell
+& "C:\Users\user\Documents\t3code-delegation\scripts\build-fork-windows.ps1"
+```
+
+The command writes the installer to `release-fork`.
+
+## Update the installed fork
+
+The build workflow makes a new installer after each change to the default branch.
+
+1. Download the newest successful artifact.
+2. Close T3 Code Delegation.
+3. Run the new installer.
+
+The installer keeps the fork data in place.
+
+The app does not install updates itself. Use the newest workflow artifact for each update.
+
+## Run from source
 
 Use the source-run desktop as the daily version of this fork. This path keeps fork data separate from the official T3 installation.
 
@@ -32,9 +72,3 @@ Install this fork on each computer that must host delegated work. Install and si
 Use **Settings -> Connections** to add the environment. Use a local network address, Tailscale, T3 Connect, or SSH.
 
 Add each target project in its owning environment. Keep the coordinating client open while agents exchange task messages.
-
-## Package the fork later
-
-A source-run desktop is the safer daily option for now. The current package build uses the official application ID.
-
-A private installer needs a distinct application ID, product name, update repository, and signing plan. Add those changes before you install it beside official T3 Code.

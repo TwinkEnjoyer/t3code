@@ -36,6 +36,7 @@ import {
 import { loadRepoEnv } from "./lib/public-config.ts";
 import { selectDesktopRuntimeExternalDependencies } from "./lib/desktop-external-packages.ts";
 import { resolveCatalogDependencies } from "./lib/resolve-catalog.ts";
+import { DESKTOP_FORK_IDENTITY } from "./lib/fork-desktop-identity.ts";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -54,7 +55,7 @@ import { Command, Flag } from "effect/unstable/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.t3tools.t3code";
+const DESKTOP_APP_ID = DESKTOP_FORK_IDENTITY.appId;
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -2564,15 +2565,19 @@ export function resolveDesktopUpdateChannel(version: string): "latest" | "nightl
   return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
 }
 
-// Pull request builds (`-pr.<n>.`) and the maintainers' preview train
-// (`-preview.<date>.<run>`) are downloaded by hand and never through an
-// updater. Building them without a publish config means electron-builder
+// Pull request builds (`-pr.<n>.`), delegation builds (`-delegation.<n>`),
+// and the maintainers' preview train (`-preview.<date>.<run>`) are downloaded
+// by hand and never through an updater. Building without a publish config means electron-builder
 // emits no `latest*.yml`/`nightly*.yml` manifests or blockmaps for them and
 // the app ships without `app-update.yml`, so neither a stable nor a nightly
 // install can be pointed at one of these releases, and the build itself
 // reports that no update feed is configured instead of polling.
 export function isDesktopPreviewVersion(version: string): boolean {
-  return /-pr\./.test(version) || /-preview\.\d{8}\.\d+$/.test(version);
+  return (
+    /-pr\./.test(version) ||
+    /-delegation\.\d+$/.test(version) ||
+    /-preview\.\d{8}\.\d+$/.test(version)
+  );
 }
 
 export function resolveDesktopWebAssetBrand(version: string): WebAssetBrand {
@@ -2614,8 +2619,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "T3 Code (Nightly)"
-    : (desktopPackageJson.productName ?? "T3 Code");
+    ? `${DESKTOP_FORK_IDENTITY.baseName} (Nightly)`
+    : DESKTOP_FORK_IDENTITY.stableProductName;
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2640,7 +2645,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "T3-Code-${version}-${arch}.${ext}",
+    artifactName: DESKTOP_FORK_IDENTITY.artifactName,
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2695,7 +2700,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "T3 Code",
+          name: DESKTOP_FORK_IDENTITY.baseName,
           schemes: ["t3code", "t3code-dev"],
         },
       ],
@@ -2742,7 +2747,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // t3code:// OAuth callbacks to the app.
       protocols: [
         {
-          name: "T3 Code",
+          name: DESKTOP_FORK_IDENTITY.baseName,
           schemes: ["t3code", "t3code-dev"],
         },
       ],
